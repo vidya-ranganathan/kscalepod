@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var logger = log.Log.WithName("controller_scaler")
+var logger = log.Log.WithName("ksclepod-controller")
 
 // KscalepodReconciler reconciles a Kscalepod object
 type KscalepodReconciler struct {
@@ -59,7 +59,7 @@ func (r *KscalepodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log := logger.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 
 	log.Info("Reconcile called")
-	scaler := &apiv1alpha1.Scaler{}
+	scaler := &apiv1alpha1.Kscalepod{}
 
 	err := r.Get(ctx, req.NamespacedName, scaler)
 	if err != nil {
@@ -88,7 +88,7 @@ func (r *KscalepodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{RequeueAfter: time.Duration(30 * time.Second)}, nil
 }
 
-func scaleDeployment(scaler *apiv1alpha1.Scaler, r *KscalepodReconciler, ctx context.Context, replicas int32) error {
+func scaleDeployment(scaler *apiv1alpha1.Kscalepod, r *KscalepodReconciler, ctx context.Context, replicas int32) error {
 	for _, deploy := range scaler.Spec.Deployments {
 		dep := &v1.Deployment{}
 		err := r.Get(ctx, types.NamespacedName{
