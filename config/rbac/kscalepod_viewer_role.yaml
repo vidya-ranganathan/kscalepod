@@ -1,0 +1,27 @@
+# permissions for end users to view kscalepods.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: kscalepod-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: kscalepod
+    app.kubernetes.io/part-of: kscalepod
+    app.kubernetes.io/managed-by: kustomize
+  name: kscalepod-viewer-role
+rules:
+- apiGroups:
+  - app.cumulonimbus.ai
+  resources:
+  - kscalepods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - app.cumulonimbus.ai
+  resources:
+  - kscalepods/status
+  verbs:
+  - get

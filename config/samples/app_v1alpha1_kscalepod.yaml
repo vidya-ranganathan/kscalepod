@@ -1,0 +1,12 @@
+apiVersion: app.cumulonimbus.ai/v1alpha1
+kind: Kscalepod
+metadata:
+  labels:
+    app.kubernetes.io/name: kscalepod
+    app.kubernetes.io/instance: kscalepod-sample
+    app.kubernetes.io/part-of: kscalepod
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: kscalepod
+  name: kscalepod-sample
+spec:
+  # TODO(user): Add fields here
