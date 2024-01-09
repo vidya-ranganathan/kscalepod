@@ -18,14 +18,21 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	apiv1alpha1 "github.com/vidya-ranganathan/kscalepod/api/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	appv1alpha1 "github.com/vidya-ranganathan/kscalepod/api/v1alpha1"
 )
+
+var logger = log.Log.WithName("controller_scaler")
 
 // KscalepodReconciler reconciles a Kscalepod object
 type KscalepodReconciler struct {
@@ -49,9 +56,64 @@ type KscalepodReconciler struct {
 func (r *KscalepodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	log := logger.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 
-	return ctrl.Result{}, nil
+	log.Info("Reconcile called")
+	scaler := &apiv1alpha1.Scaler{}
+
+	err := r.Get(ctx, req.NamespacedName, scaler)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("Scaler resource not found. Ignoring since object must be deleted.")
+			return ctrl.Result{}, nil
+		}
+		log.Error(err, "Failed")
+		return ctrl.Result{}, err
+	}
+
+	startTime := scaler.Spec.Start
+	endTime := scaler.Spec.End
+
+	// current time in UTC
+	currentHour := time.Now().UTC().Hour()
+	log.Info(fmt.Sprintf("current time in hour : %d\n", currentHour))
+
+	if currentHour >= startTime && currentHour <= endTime {
+
+		if err = scaleDeployment(scaler, r, ctx, int32(scaler.Spec.Replicas)); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	return ctrl.Result{RequeueAfter: time.Duration(30 * time.Second)}, nil
+}
+
+func scaleDeployment(scaler *apiv1alpha1.Scaler, r *ScalerReconciler, ctx context.Context, replicas int32) error {
+	for _, deploy := range scaler.Spec.Deployments {
+		dep := &v1.Deployment{}
+		err := r.Get(ctx, types.NamespacedName{
+			Namespace: deploy.Namespace,
+			Name:      deploy.Name,
+		}, dep)
+		if err != nil {
+			return err
+		}
+
+		if dep.Spec.Replicas != &replicas {
+			dep.Spec.Replicas = &replicas
+			err := r.Update(ctx, dep)
+			if err != nil {
+				scaler.Status.Status = apiv1alpha1.FAILED
+				return err
+			}
+			scaler.Status.Status = apiv1alpha1.SUCCESS
+			err = r.Status().Update(ctx, scaler)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
