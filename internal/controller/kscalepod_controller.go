@@ -88,7 +88,7 @@ func (r *KscalepodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{RequeueAfter: time.Duration(30 * time.Second)}, nil
 }
 
-func scaleDeployment(scaler *apiv1alpha1.Scaler, r *ScalerReconciler, ctx context.Context, replicas int32) error {
+func scaleDeployment(scaler *apiv1alpha1.Scaler, r *KscalepodReconciler, ctx context.Context, replicas int32) error {
 	for _, deploy := range scaler.Spec.Deployments {
 		dep := &v1.Deployment{}
 		err := r.Get(ctx, types.NamespacedName{
